@@ -33,7 +33,7 @@ https://github.com/ethereum/wiki/wiki/Standardized_Contract_APIs
 pragma solidity ^0.8.21;
 
 contract Plutocracy {
-    function getOrModifyBlocked(address _account) returns (bool);
+    function getOrModifyBlocked (address _account) public returns (bool);
 }
 
 contract TokenInterface {
@@ -52,13 +52,13 @@ contract TokenInterface {
 
     /// @param _owner The address from which the balance will be retrieved
     /// @return The balance
-    function balanceOf(address _owner) view returns (uint256 balance);
+    function balanceOf(address _owner) public view returns (uint256 balance);
 
     /// @notice Send `_amount` tokens to `_to` from `msg.sender`
     /// @param _to The address of the recipient
     /// @param _amount The amount of tokens to be transferred
     /// @return Whether the transfer was successful or not
-    function transfer(address _to, uint256 _amount) returns (bool success);
+    function transfer(address _to, uint256 _amount) public returns (bool success);
 
     /// @notice Send `_amount` tokens to `_to` from `_from` on the condition it
     /// is approved by `_from`
@@ -66,14 +66,14 @@ contract TokenInterface {
     /// @param _to The address of the recipient
     /// @param _amount The amount of tokens to be transferred
     /// @return Whether the transfer was successful or not
-    function transferFrom(address _from, address _to, uint256 _amount) returns (bool success);
+    function transferFrom(address _from, address _to, uint256 _amount) public returns (bool success);
 
     /// @notice `msg.sender` approves `_spender` to spend `_amount` tokens on
     /// its behalf
     /// @param _spender The address of the account able to transfer the tokens
     /// @param _amount The amount of tokens to be approved for transfer
     /// @return Whether the approval was successful or not
-    function approve(address _spender, uint256 _amount) returns (bool success);
+    function approve(address _spender, uint256 _amount) public returns (bool success);
 
     /// @param _owner The address of the account owning tokens
     /// @param _spender The address of the account able to transfer the tokens
@@ -82,7 +82,7 @@ contract TokenInterface {
     function allowance(
         address _owner,
         address _spender
-    ) view returns (uint256 remaining);
+    ) public view returns (uint256 remaining);
 
     event Transfer(address indexed _from, address indexed _to, uint256 _amount);
     event Approval(
@@ -95,15 +95,15 @@ contract TokenInterface {
 
 contract Token is TokenInterface {
 
-    function Token (Plutocracy _plutocracy) {
+    constructor (Plutocracy _plutocracy)  {
         plutocracy = _plutocracy;
     }
 
-    function balanceOf(address _owner) view returns (uint256 balance) {
+    function balanceOf(address _owner) public view returns (uint256 balance) {
         return balances[_owner];
     }
 
-    function transfer(address _to, uint256 _amount) returns (bool success) {
+    function transfer(address _to, uint256 _amount) public returns (bool success) {
         if (balances[msg.sender] >= _amount
             && _amount > 0
             && plutocracy.getOrModifyBlocked(_to)) {
@@ -121,7 +121,7 @@ contract Token is TokenInterface {
         address _from,
         address _to,
         uint256 _amount
-    ) returns (bool success) {
+    ) public returns (bool success) {
 
         if (balances[_from] >= _amount
             && allowed[_from][msg.sender] >= _amount
@@ -139,13 +139,13 @@ contract Token is TokenInterface {
         }
     }
 
-    function approve(address _spender, uint256 _amount) returns (bool success) {
+    function approve(address _spender, uint256 _amount) public returns (bool success) {
         allowed[msg.sender][_spender] = _amount;
         Approval(msg.sender, _spender, _amount);
         return true;
     }
 
-    function allowance(address _owner, address _spender) view returns (uint256 remaining) {
+    function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
         return allowed[_owner][_spender];
     }
 }

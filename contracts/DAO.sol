@@ -138,7 +138,7 @@ contract DAOInterface {
     //  );
 
     /// @notice donate without getting tokens
-    fallback() payable;
+    fallback() external payable;
 
     /// @notice `msg.sender` creates a proposal to send `_amount` Wei to
     /// `_recipient` with the transaction data `_transactionData`. If
@@ -160,7 +160,7 @@ contract DAOInterface {
         bytes _transactionData,
         uint _debatingPeriod,
         bool _newCurator
-    ) payable returns (uint _proposalID);
+    ) public payable returns (uint _proposalID);
 
     /// @notice Check that the proposal with the ID `_proposalID` matches the
     /// transaction which sends `_amount` with data `_transactionData`
@@ -175,12 +175,12 @@ contract DAOInterface {
         address _recipient,
         uint _amount,
         bytes _transactionData
-    ) view returns (bool _codeChecksOut);
+    ) public view returns (bool _codeChecksOut);
 
     /// @notice Vote on proposal `_proposalID` with `_supportsProposal`
     /// @param _proposalID The proposal ID
     /// @param _supportsProposal Yes/No - support of the proposal
-    function vote(uint _proposalID, bool _supportsProposal);
+    function vote(uint _proposalID, bool _supportsProposal) public;
 
     /// @notice Checks whether proposal `_proposalID` with transaction data
     /// `_transactionData` has been voted for or rejected, and executes the
@@ -191,14 +191,14 @@ contract DAOInterface {
     function executeProposal(
         uint _proposalID,
         bytes _transactionData
-    ) returns (bool _success);
+    ) public returns (bool _success);
 
 
     /// @dev can only be called by the DAO itself through a proposal
     /// updates the contract of the DAO by sending all ether and rewardTokens
     /// to the new DAO. The new DAO needs to be approved by the Curator
     /// @param _newContract the address of the new contract
-    function newContract(address _newContract);
+    function newContract(address _newContract) public ;
 
 
     /// @notice Add a new possible recipient `_recipient` to the whitelist so
@@ -218,10 +218,10 @@ contract DAOInterface {
     /// @notice Doubles the 'minQuorumDivisor' in the case quorum has not been
     /// achieved in 52 weeks
     /// @return Whether the change was successful or not
-    function halveMinQuorum() returns (bool _success);
+    function halveMinQuorum() public returns (bool _success);
 
     /// @return total number of proposals ever created
-    function numberOfProposals() view returns (uint _numberOfProposals);
+    function numberOfProposals() public view returns (uint _numberOfProposals);
 
     /// @param _account The address of the account which is checked.
     /// @return Whether the account is blocked (not allowed to transfer tokens) or not.
@@ -230,7 +230,7 @@ contract DAOInterface {
     /// @notice If the caller is blocked by a proposal whose voting deadline
     /// has exprired then unblock him.
     /// @return Whether the account is blocked (not allowed to transfer tokens) or not.
-    function unblockMe() returns (bool);
+    function unblockMe() public returns (bool);
 
     event ProposalAdded(
         uint indexed proposalID,
@@ -248,11 +248,11 @@ contract DAO is DAOInterface{
 
     // Modifier that allows only shareholders to vote and create new proposals
     modifier onlyTokenholders {
-        if (token.balanceOf(msg.sender) == 0) throw;
-            _;
+        require(token.balanceOf(msg.sender) > 0, "You must be a tokenholder");
+        _;
     }
 
-    function DAO(
+    constructor(
         address _curator,
         uint _proposalDeposit,
         Token _token
@@ -268,7 +268,7 @@ contract DAO is DAOInterface{
         allowedRecipients[curator] = true;
     }
 
-    fallback() payable {
+    fallback() external payable {
     }
 
     function newProposal(
@@ -277,15 +277,16 @@ contract DAO is DAOInterface{
         string _description,
         bytes _transactionData,
         uint64 _debatingPeriod
-    ) onlyTokenholders payable returns (uint _proposalID) {
+    ) onlyTokenholders public payable returns (uint _proposalID) {
 
-        if (!allowedRecipients[_recipient]
-            || _debatingPeriod < minProposalDebatePeriod
-            || _debatingPeriod > 8 weeks
-            || msg.value < proposalDeposit
-            || msg.sender == address(this) //to prevent a 51% attacker to convert the ether into deposit
-            )
-                throw;
+       require(
+            allowedRecipients[_recipient]
+            && _debatingPeriod >= minProposalDebatePeriod
+            && _debatingPeriod <= 8 weeks
+            && msg.value >= proposalDeposit
+            && msg.sender != address(this), // Check that the sender is not the contract itself, to prevent a 51% attacker to convert the ether into deposit
+            "Invalid parameters for proposal creation"
+        );
 
         // to prevent curator from halving quorum before first proposal
         if (proposals.length == 1) // initial length is 1 (see constructor)
@@ -318,12 +319,12 @@ contract DAO is DAOInterface{
         address _recipient,
         uint _amount,
         bytes _transactionData
-    ) view returns (bool _codeChecksOut) {
+    ) public view returns (bool _codeChecksOut) {
         Proposal p = proposals[_proposalID];
         return p.proposalHash == sha3(_recipient, _amount, _transactionData);
     }
 
-    function vote(uint _proposalID, bool _supportsProposal) {
+    function vote(uint _proposalID, bool _supportsProposal) public {
 
         Proposal p = proposals[_proposalID];
 
@@ -349,12 +350,10 @@ contract DAO is DAOInterface{
         Voted(_proposalID, _supportsProposal, msg.sender);
     }
 
-    function unVote(uint _proposalID){
+    function unVote(uint _proposalID) public {
         Proposal p = proposals[_proposalID];
 
-        if (now >= p.votingDeadline) {
-            throw;
-        }
+        require(block.timestamp < p.votingDeadline, "Voting deadline has passed");
 
         if (p.votedYes[msg.sender]) {
             p.yea -= token.balanceOf(msg.sender);
@@ -367,7 +366,7 @@ contract DAO is DAOInterface{
         }
     }
 
-    function unVoteAll() {
+    function unVoteAll() public{
         // DANGEROUS loop with dynamic length - needs improvement
         for (uint i = 0; i < votingRegister[msg.sender].length; i++) {
             Proposal p = proposals[votingRegister[msg.sender][i]];
@@ -379,7 +378,7 @@ contract DAO is DAOInterface{
         blocked[msg.sender] = 0;
     }
     
-    function verifyPreSupport(uint _proposalID) {
+    function verifyPreSupport(uint _proposalID) public {
         Proposal p = proposals[_proposalID];
         if (now < p.votingDeadline - preSupportTime) {
             if (p.yea > p.nay) {
@@ -393,7 +392,7 @@ contract DAO is DAOInterface{
     function executeProposal(
         uint _proposalID,
         bytes _transactionData
-    ) returns (bool _success) {
+    )public returns (bool _success) {
 
         Proposal p = proposals[_proposalID];
 
@@ -403,15 +402,14 @@ contract DAO is DAOInterface{
             return;
         }
 
-        // Check if the proposal can be executed
-        if (now < p.votingDeadline  // has the voting deadline arrived?
-            // Have the votes been counted?
-            || !p.open
-            || p.proposalPassed // anyone trying to call us recursively?
-            // Does the transaction code match the proposal?
-            || p.proposalHash != sha3(p.recipient, p.amount, _transactionData)
-            )
-                throw;
+     // Check if the proposal can be executed
+        require(block.timestamp < p.votingDeadline, "Voting deadline has arrived");
+        require(p.open, "Votes have not been counted");
+        require(!p.proposalPassed, "Proposal has already passed");
+        require(
+                p.proposalHash == keccak256(abi.encode(p.recipient, p.amount, _transactionData)),
+                "Transaction code does not match the proposal"
+        );
 
         // If the curator removed the recipient from the whitelist, close the proposal
         // in order to free the deposit and allow unblocking of voters
@@ -439,8 +437,7 @@ contract DAO is DAOInterface{
                 proposalCheck = false;
 
         if (quorum >= minQuorum(p.amount)) {
-            if (!p.creator.send(p.proposalDeposit))
-                throw;
+            require(p.creator.send(p.proposalDeposit), "Failed to send proposal deposit");
 
             lastTimeMinQuorumMet = now;
             // set the minQuorum to 14.3% again, in the case it has been reached
@@ -460,8 +457,8 @@ contract DAO is DAOInterface{
             // can do everything a transaction can do. It can be used to reenter
             // the DAO. The `p.proposalPassed` variable prevents the call from 
             // reaching this line again
-            if (!p.recipient.call.value(p.amount)(_transactionData))
-                throw;
+            require(p.recipient.call.value(p.amount)(_transactionData), "Failed to execute proposal transaction");
+
 
             _success = true;
         }
@@ -501,33 +498,29 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
     }
 */
 
-    function newContract(address _newContract){
+    function newContract(address _newContract) public {
         if (msg.sender != address(this) || !allowedRecipients[_newContract]) return;
         // move all ether
-        if (!_newContract.call.value(address(this).balance)()) {
-            throw;
-        }
+       require(_newContract.call.value(address(this).balance)(), "Failed to transfer balance to new contract");
+
     }
 
     function changeProposalDeposit(uint _proposalDeposit) external {
-        if (msg.sender != address(this) || _proposalDeposit > (actualBalance())
-            / maxDepositDivisor) {
-            throw;
-        }
+      require(msg.sender == address(this) && _proposalDeposit <= actualBalance() / maxDepositDivisor, "Invalid conditions for proposal deposit");
         proposalDeposit = _proposalDeposit;
     }
 
 
     function changeAllowedRecipients(address _recipient, bool _allowed) external returns (bool _success) {
-        if (msg.sender != curator)
-            throw;
+        require(msg.sender == curator, "Only the curator can perform this action");
+
         allowedRecipients[_recipient] = _allowed;
         AllowedRecipientChanged(_recipient, _allowed);
         return true;
     }
 
 
-    function actualBalance() view returns (uint _actualBalance) {
+    function actualBalance() public view returns (uint _actualBalance) {
         return this.balance - sumOfProposalDeposits;
     }
 
@@ -539,7 +532,7 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
     }
 
 
-    function halveMinQuorum() returns (bool _success) {
+    function halveMinQuorum() public returns (bool _success) {
         // this can only be called after `quorumHalvingPeriod` has passed or at anytime after
         // fueling by the curator with a delay of at least `minProposalDebatePeriod`
         // between the calls
@@ -554,7 +547,7 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
         }
     }
 
-    function numberOfProposals() view returns (uint _numberOfProposals) {
+    function numberOfProposals() public view returns (uint _numberOfProposals) {
         // Don't count index 0. It's used by getOrModifyBlocked() and exists from start
         return proposals.length - 1;
     }
@@ -571,7 +564,7 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
         }
     }
 
-    function unblockMe() returns (bool) {
+    function unblockMe() public returns (bool) {
         return getOrModifyBlocked(msg.sender);
     }
 }

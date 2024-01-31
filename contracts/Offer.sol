@@ -94,15 +94,19 @@ contract Offer {
 
 
     modifier onlyClient {
-        if (msg.sender != address(client))
-            throw;
+        require(msg.sender == address(client), "Unauthorized access");
         _;
     }
 
-    // Prevents methods from perfoming any value transfer
-    modifier noEther() {if (msg.value > 0) throw; _;}
 
-    function Offer(
+    // Prevents methods from perfoming any value transfer
+    modifier noEther() {
+    require(msg.value == 0, "Ether not allowed");
+    _;
+}
+
+
+    constructor(
         address _contractor,
         address _client,
         bytes32 _hashOfTheProposalDocument,
@@ -123,43 +127,43 @@ contract Offer {
     }
 
     // non-value-transfer getters
-    function getTotalCost() noEther view returns (uint) {
+    function getTotalCost() noEther public view returns (uint) {
         return totalCost;
     }
 
-    function getInitialWithdrawal() noEther view returns (uint) {
+    function getInitialWithdrawal() noEther public view returns (uint) {
         return initialWithdrawal;
     }
 
-    function getMinDailyWithdrawalLimit() noEther view returns (uint128) {
+    function getMinDailyWithdrawalLimit() noEther public view returns (uint128) {
         return minDailyWithdrawalLimit;
     }
 
-    function getDailyWithdrawalLimit() noEther view returns (uint128) {
+    function getDailyWithdrawalLimit() noEther public view returns (uint128) {
         return dailyWithdrawalLimit;
     }
 
-    function getPayoutFreezePeriod() noEther view returns (uint) {
+    function getPayoutFreezePeriod() noEther public view returns (uint) {
         return payoutFreezePeriod;
     }
 
-    function getContractor() noEther view returns (address) {
+    function getContractor() noEther public view returns (address) {
         return contractor;
     }
 
-    function getHashOfTheProposalDocument() noEther view returns (bytes32) {
+    function getHashOfTheProposalDocument() noEther public view returns (bytes32) {
         return hashOfTheProposalDocument;
     }
 
-    function getLastWithdrawal() noEther view returns (uint) {
+    function getLastWithdrawal() noEther public view returns (uint) {
         return lastWithdrawal;
     }
 
-    function getDateOfSignature() noEther view returns (uint) {
+    function getDateOfSignature() noEther public view returns (uint) {
         return dateOfSignature;
     }
 
-    function getClient() noEther view returns (DAO) {
+    function getClient() noEther public view returns (DAO) {
         return client;
     }
 
@@ -167,15 +171,15 @@ contract Offer {
         return originalClient;
     }
 
-    function getIsContractValid() noEther view returns (bool) {
+    function getIsContractValid() noEther public view returns (bool) {
         return isContractValid;
     }
 
-    function getInitialWithdrawalDone() noEther view returns (bool) {
+    function getInitialWithdrawalDone() noEther public view returns (bool) {
         return initialWithdrawalDone;
     }
 
-    function getVotingDeadline() noEther view returns (uint) {
+    function getVotingDeadline() noEther public view returns (uint) {
         return votingDeadline;
     }
 

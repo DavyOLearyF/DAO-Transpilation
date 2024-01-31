@@ -33,17 +33,17 @@ pragma solidity ^0.8.21;
 
 contract OraclizeI {
     address public cbAddress;
-    function query(uint _timestamp, string _datasource, string _arg) returns (bytes32 _id);
-    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) returns (bytes32 _id);
-    function query2(uint _timestamp, string _datasource, string _arg1, string _arg2) returns (bytes32 _id);
-    function query2_withGasLimit(uint _timestamp, string _datasource, string _arg1, string _arg2, uint _gaslimit) returns (bytes32 _id);
-    function getPrice(string _datasource) returns (uint _dsprice);
-    function getPrice(string _datasource, uint gaslimit) returns (uint _dsprice);
-    function useCoupon(string _coupon);
-    function setProofType(bytes1 _proofType);
+    function query(uint _timestamp, string _datasource, string _arg) public returns (bytes32 _id);
+    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) public returns (bytes32 _id);
+    function query2(uint _timestamp, string _datasource, string _arg1, string _arg2) public returns (bytes32 _id);
+    function query2_withGasLimit(uint _timestamp, string _datasource, string _arg1, string _arg2, uint _gaslimit) public returns (bytes32 _id);
+    function getPrice(string _datasource) public returns (uint _dsprice);
+    function getPrice(string _datasource, uint gaslimit) public returns (uint _dsprice);
+    function useCoupon(string _coupon) public;
+    function setProofType(bytes1 _proofType) public;
 }
 contract OraclizeAddrResolverI {
-    function getAddress() returns (address _addr);
+    function getAddress() public returns (address _addr);
 }
 contract usingOraclize {
     uint constant day = 60*60*24;

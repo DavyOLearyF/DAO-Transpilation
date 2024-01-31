@@ -32,7 +32,7 @@ pragma solidity ^0.8.21;
 
 // Workaround proxy remove when fixed
 contract DAO {
-    function proposals(uint _proposalID) returns(
+    function proposals(uint _proposalID) public returns(
         address recipient,
         uint amount,
         uint descriptionIdx,
@@ -44,16 +44,16 @@ contract DAO {
         bool newCurator
     );
 
-    function transfer(address _to, uint256 _amount) returns (bool success);
+    function transfer(address _to, uint256 _amount) public returns (bool success);
 
-    function transferFrom(address _from, address _to, uint256 _amount) returns (bool success);
+    function transferFrom(address _from, address _to, uint256 _amount) public returns (bool success);
 
     function vote(
         uint _proposalID,
         bool _supportsProposal
-    ) returns (uint _voteID);
+    ) public returns (uint _voteID);
 
-    function balanceOf(address _owner) view returns (uint256 balance);
+    function balanceOf(address _owner) public view returns (uint256 balance);
 }
 // End of workaround proxy
 ////////////////////
@@ -118,12 +118,12 @@ contract DTHPoolInterface {
     /// @notice send votes to this contract.
     /// @param _amount Tokens that will be transfered to the pool.
     /// @return Whether the transfer was successful or not
-    function delegateDAOTokens(uint _amount) returns (bool _success);
+    function delegateDAOTokens(uint _amount) public returns (bool _success);
 
     /// Returns DAO tokens to the original
     /// @param _amount that will be transfered back to the owner.
     /// @return Whether the transfer was successful or not
-    function undelegateDAOTokens(uint _amount) returns (bool _success);
+    function undelegateDAOTokens(uint _amount) public returns (bool _success);
 
 
     /// @notice This method will be called by the delegate to publish what will
@@ -136,23 +136,23 @@ contract DTHPoolInterface {
         bool _willVote,
         bool _supportsProposal,
         string _motivation
-    ) returns (bool _success);
+    ) public returns (bool _success);
 
     /// @notice This method will be doing the actual voting in the DAO
     /// for the _proposalID
     /// @param _proposalID The proposal to set the vote.
     /// @return _finalized true if this vote Proposal must not be executed again.
-    function executeVote(uint _proposalID) returns (bool _finalized);
+    function executeVote(uint _proposalID) public returns (bool _finalized);
 
 
     /// @notice This function is intended because if some body sends tokens
     /// directly to this contract, the tokens can be sent to the delegate
-    function fixTokens() returns (bool _success);
+    function fixTokens() public returns (bool _success);
 
 
     /// @notice If some body sends ether to this contract, the delegate will be
     /// able to extract it.
-    function getEther() returns (uint _amount);
+    function getEther() public returns (uint _amount);
 
     /// @notice Called when some body delegates token to the pool
     event Delegate(address indexed _from, uint256 _amount);
@@ -170,11 +170,15 @@ contract DTHPoolInterface {
 
 contract DTHPool is DTHPoolInterface, Token, usingOraclize {
 
-    modifier onlyDelegate() {if (msg.sender != delegate) throw; _;}
+    modifier onlyDelegate() {
+    require(msg.sender == delegate, "Only delegate can call this function");
+    _;
+}
+
 
     // DTHPool(address _daoAddress, address _delegate, uint _maxTimeBlocked, string _delegateName, string _delegateUrl, string _tokenSymbol);
 
-    function DTHPool(
+    constructor(
         address _daoAddress,
         address _delegate,
         uint _maxTimeBlocked,
@@ -192,11 +196,10 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
         oraclize_setNetwork(networkID_auto);
     }
 
-    function delegateDAOTokens(uint _amount) returns (bool _success) {
+    function delegateDAOTokens(uint _amount) public returns (bool _success) {
         DAO dao = DAO(daoAddress);
-        if (!dao.transferFrom(msg.sender, address(this), _amount)) {
-            throw;
-        }
+        require(dao.transferFrom(msg.sender, address(this), _amount), "TransferFrom failed");
+
 
         balances[msg.sender] += _amount;
         totalSupply += _amount;
@@ -204,15 +207,13 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
         return true;
     }
 
-    function undelegateDAOTokens(uint _amount) returns (bool _success) {
+    function undelegateDAOTokens(uint _amount) public returns (bool _success) {
         DAO dao = DAO(daoAddress);
-        if (_amount > balances[msg.sender]) {
-            throw;
-        }
+        
+        require(_amount <= balances[msg.sender], "Insufficient balance");
+        
+        require(dao.transfer(msg.sender, _amount), "Transfer failed");
 
-        if (!dao.transfer(msg.sender, _amount)) {
-            throw;
-        }
 
         balances[msg.sender] -= _amount;
         totalSupply -= _amount;
@@ -225,20 +226,18 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
         bool _willVote,
         bool _supportsProposal,
         string _motivation
-    ) onlyDelegate returns (bool _success) {
+    ) onlyDelegate public returns (bool _success) {
         DAO dao = DAO(daoAddress);
 
         ProposalStatus proposalStatus = proposalStatuses[_proposalID];
 
-        if (proposalStatus.voteSet) {
-            throw;
-        }
+      require(!proposalStatus.voteSet, "Vote has already been cast");
+
 
         (,,,uint votingDeadline, ,,,,bool newCurator) = dao.proposals(_proposalID);
 
-        if (votingDeadline < now || newCurator ) {
-            throw;
-        }
+        require(!(votingDeadline < block.timestamp || newCurator), "Invalid condition");
+
 
         proposalStatus.voteSet = true;
         proposalStatus.willVote = _willVote;
@@ -264,7 +263,7 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
         return true;
     }
 
-    function executeVote(uint _proposalID) returns (bool _finalized) {
+    function executeVote(uint _proposalID) public returns (bool _finalized) {
         DAO dao = DAO(daoAddress);
         ProposalStatus proposalStatus = proposalStatuses[_proposalID];
 
@@ -287,18 +286,17 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
         return true;
     }
 
-    function __callback(bytes32 oid, string result) {
+    function __callback(bytes32 oid, string result) public{
         uint proposalId = oraclizeId2proposalId[oid];
         executeVote(proposalId);
         oraclizeId2proposalId[oid] = 0;
     }
 
-    function fixTokens() returns (bool _success) {
+    function fixTokens() public returns (bool _success) {
         DAO dao = DAO(daoAddress);
         uint ownedTokens = dao.balanceOf(this);
-        if (ownedTokens < totalSupply) {
-            throw;
-        }
+       require(!(ownedTokens < totalSupply), "Invalid condition");
+
         uint fixTokens = ownedTokens - totalSupply;
 
         if (fixTokens == 0) {
@@ -311,12 +309,11 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
         return true;
     }
 
-    function getEther() onlyDelegate returns (uint _amount) {
+    function getEther() onlyDelegate public returns (uint _amount) {
         uint amount = this.balance;
 
-        if (!delegate.call.value(amount)()) {
-            throw;
-        }
+        require(delegate.call.value(amount)(), "Delegate call failed");
+
 
         return amount;
     }

@@ -39,7 +39,7 @@ contract DAOTokenCreationProxyTransferer {
     address public dao;
 
     //constructor
-    function DAOTokenCreationProxyTransferer(address _owner, address _dao) {
+    constructor(address _owner, address _dao) {
         owner = _owner;
         dao = _dao;
 
@@ -49,11 +49,11 @@ contract DAOTokenCreationProxyTransferer {
     }
 
     // default-function called when values are sent.
-    fallback () {
+    fallback () external{
        sendValues();
     }
 
-    function sendValues() {
+    function sendValues() public{
         if (this.balance == 0)
             return;
 

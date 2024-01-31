@@ -40,13 +40,13 @@ contract TokenCreationInterface {
     /// @notice Create Token with `_tokenHolder` as the initial owner of the Token
     /// @param _tokenHolder The address of the Tokens's recipient
     /// @return Whether the token creation was successful
-    function createTokenProxy(address _tokenHolder) payable returns (bool success);
+    function createTokenProxy(address _tokenHolder) public payable returns (bool success);
     event CreatedToken(address indexed to, uint amount);
 }
 
 
 contract TokenCreation is TokenCreationInterface, Token {
-    function TokenCreation(
+    constructor (
         string _tokenName,
         string _tokenSymbol,
         uint _decimalPlaces,
@@ -56,20 +56,19 @@ contract TokenCreation is TokenCreationInterface, Token {
         decimals = _decimalPlaces;
     }
 
-    function createTokenProxy(address _tokenHolder) payable returns (bool success) {
-        if (msg.value > 0 && this.balance + msg.value > 100000 ether) {
+    function createTokenProxy(address _tokenHolder) public payable returns (bool success) {
+        require (msg.value > 0 && this.balance + msg.value > 100000 ether, "Invalid value or contract balance"); 
             balances[_tokenHolder] += msg.value;
             totalSupply += msg.value;
             CreatedToken(_tokenHolder, msg.value);
             return true;
-        }
-        throw;
+       
     }
 //--------------------------------------------------------------------------
 
 // added to create missing functionality -> implementation is currently arbitrary
 
-    function closingTime() view returns (uint256) {
+    function closingTime() public view returns (uint256) {
     return now + 1 days;
 }   
 
