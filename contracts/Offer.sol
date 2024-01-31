@@ -236,7 +236,7 @@ contract Offer {
         if (amount > this.balance) {
             amount = this.balance;
         }
-        var lastWithdrawalReset = lastWithdrawal;
+        uint lastWithdrawalReset = lastWithdrawal;
         lastWithdrawal = now;
         if (!contractor.send(amount))
             lastWithdrawal = lastWithdrawalReset;
@@ -263,7 +263,7 @@ contract Offer {
         client = _newClient;
     }
 
-    function () {
+    fallback () {
         throw; // This is a business contract, no donations.
     }
 }

@@ -234,7 +234,7 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
             throw;
         }
 
-        var (,,,votingDeadline, ,,,,newCurator) = dao.proposals(_proposalID);
+        (,,,uint votingDeadline, ,,,,bool newCurator) = dao.proposals(_proposalID);
 
         if (votingDeadline < now || newCurator ) {
             throw;

@@ -189,7 +189,7 @@ contract PFOffer {
     }
 
     function sign() {
-        var (_,,,votingDeadline,,) = client.proposals(proposalID);
+        (_,,,votingDeadline,,) = client.proposals(proposalID);
         if (msg.sender != address(originalClient) // no good samaritans give us ether
             || msg.value != totalCost    // no under/over payment
             || dateOfSignature != 0       // don't sign twice
@@ -232,7 +232,7 @@ contract PFOffer {
         if (amount > this.balance) {
             amount = this.balance;
         }
-        var lastWithdrawalReset = lastWithdrawal;
+        uint lastWithdrawalReset = lastWithdrawal;
         lastWithdrawal = now;
         if (!contractor.send(amount))
             lastWithdrawal = lastWithdrawalReset;
@@ -255,7 +255,7 @@ contract PFOffer {
     // function to register its proposal ID with the offer contract
     // so that the vote can be watched and checked with `checkVoteStatus()`
     function watchProposal(uint _proposalID) noEther onlyContractor {
-        var (recipient,,,votingDeadline,open,) = client.proposals(_proposalID);
+        ( recipient,,, votingDeadline, open,) = client.proposals(_proposalID);
         if (recipient == address(this)
             && votingDeadline > now
             && open
@@ -267,7 +267,7 @@ contract PFOffer {
     // The proposal will not accept the results of the vote if it wasn't able
     // to be sure that YEA was able to succeed 48 hours before the deadline
     function checkVoteStatus() noEther {
-        var (,,,votingDeadline,,,,,,yea,nay,) = client.proposals(proposalID);
+         (,,,votingDeadline,,,,,,yea,nay,) = client.proposals(proposalID);
         uint quorum = yea * 100 / client.totalSupply();
 
         // Only execute until 48 hours before the deadline
@@ -286,7 +286,7 @@ contract PFOffer {
         client = _newClient;
     }
 
-    function () {
+    fallback () {
         throw; // this is a business contract, no donations
     }
 }
