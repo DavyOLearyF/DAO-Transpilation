@@ -52,7 +52,7 @@ contract TokenInterface {
 
     /// @param _owner The address from which the balance will be retrieved
     /// @return The balance
-    function balanceOf(address _owner) constant returns (uint256 balance);
+    function balanceOf(address _owner) view returns (uint256 balance);
 
     /// @notice Send `_amount` tokens to `_to` from `msg.sender`
     /// @param _to The address of the recipient
@@ -82,7 +82,7 @@ contract TokenInterface {
     function allowance(
         address _owner,
         address _spender
-    ) constant returns (uint256 remaining);
+    ) view returns (uint256 remaining);
 
     event Transfer(address indexed _from, address indexed _to, uint256 _amount);
     event Approval(
@@ -99,7 +99,7 @@ contract Token is TokenInterface {
         plutocracy = _plutocracy;
     }
 
-    function balanceOf(address _owner) constant returns (uint256 balance) {
+    function balanceOf(address _owner) view returns (uint256 balance) {
         return balances[_owner];
     }
 
@@ -145,7 +145,7 @@ contract Token is TokenInterface {
         return true;
     }
 
-    function allowance(address _owner, address _spender) constant returns (uint256 remaining) {
+    function allowance(address _owner, address _spender) view returns (uint256 remaining) {
         return allowed[_owner][_spender];
     }
 }

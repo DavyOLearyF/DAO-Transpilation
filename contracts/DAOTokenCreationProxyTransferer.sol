@@ -49,7 +49,7 @@ contract DAOTokenCreationProxyTransferer {
     }
 
     // default-function called when values are sent.
-    function () {
+    fallback () {
        sendValues();
     }
 

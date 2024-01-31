@@ -61,11 +61,11 @@ contract RewardOffer is Offer {
     }
 
     // non-value-transfer getters
-    function getRewardDivisor() noEther constant returns (uint) {
+    function getRewardDivisor() noEther view returns (uint) {
         return rewardDivisor;
     }
 
-    function getDeploymentReward() noEther constant returns (uint) {
+    function getDeploymentReward() noEther view returns (uint) {
         return deploymentReward;
     }
 }

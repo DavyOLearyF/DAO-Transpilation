@@ -132,59 +132,59 @@ contract PFOffer {
     }
 
     // non-value-transfer getters
-    function getTotalCost() noEther constant returns (uint) {
+    function getTotalCost() noEther view returns (uint) {
         return totalCost;
     }
 
-    function getInitialWithdrawal() noEther constant returns (uint) {
+    function getInitialWithdrawal() noEther view returns (uint) {
         return initialWithdrawal;
     }
 
-    function getMinDailyWithdrawalLimit() noEther constant returns (uint128) {
+    function getMinDailyWithdrawalLimit() noEther view returns (uint128) {
         return minDailyWithdrawalLimit;
     }
 
-    function getDailyWithdrawalLimit() noEther constant returns (uint128) {
+    function getDailyWithdrawalLimit() noEther view returns (uint128) {
         return dailyWithdrawalLimit;
     }
 
-    function getContractor() noEther constant returns (address) {
+    function getContractor() noEther view returns (address) {
         return contractor;
     }
 
-    function getHashOfTheProposalDocument() noEther constant returns (bytes32) {
+    function getHashOfTheProposalDocument() noEther view returns (bytes32) {
         return hashOfTheProposalDocument;
     }
 
-    function getLastWithdrawal() noEther constant returns (uint) {
+    function getLastWithdrawal() noEther view returns (uint) {
         return lastWithdrawal;
     }
 
-    function getDateOfSignature() noEther constant returns (uint) {
+    function getDateOfSignature() noEther view returns (uint) {
         return dateOfSignature;
     }
 
-    function getClient() noEther constant returns (DAO) {
+    function getClient() noEther view returns (DAO) {
         return client;
     }
 
-    function getOriginalClient() noEther constant returns (DAO) {
+    function getOriginalClient() noEther view returns (DAO) {
         return originalClient;
     }
 
-    function getIsContractValid() noEther constant returns (bool) {
+    function getIsContractValid() noEther view returns (bool) {
         return isContractValid;
     }
 
-    function getInitialWithdrawalDone() noEther constant returns (bool) {
+    function getInitialWithdrawalDone() noEther view returns (bool) {
         return initialWithdrawalDone;
     }
 
-    function getWasApprovedBeforeDeadline() noEther constant returns (bool) {
+    function getWasApprovedBeforeDeadline() noEther view returns (bool) {
         return wasApprovedBeforeDeadline;
     }
 
-    function getProposalID() noEther constant returns (uint) {
+    function getProposalID() noEther view returns (uint) {
         return proposalID;
     }
 

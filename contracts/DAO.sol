@@ -221,7 +221,7 @@ contract DAOInterface {
     function halveMinQuorum() returns (bool _success);
 
     /// @return total number of proposals ever created
-    function numberOfProposals() constant returns (uint _numberOfProposals);
+    function numberOfProposals() view returns (uint _numberOfProposals);
 
     /// @param _account The address of the account which is checked.
     /// @return Whether the account is blocked (not allowed to transfer tokens) or not.
@@ -318,7 +318,7 @@ contract DAO is DAOInterface{
         address _recipient,
         uint _amount,
         bytes _transactionData
-    ) constant returns (bool _codeChecksOut) {
+    ) view returns (bool _codeChecksOut) {
         Proposal p = proposals[_proposalID];
         return p.proposalHash == sha3(_recipient, _amount, _transactionData);
     }
@@ -527,12 +527,12 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
     }
 
 
-    function actualBalance() constant returns (uint _actualBalance) {
+    function actualBalance() view returns (uint _actualBalance) {
         return this.balance - sumOfProposalDeposits;
     }
 
 
-    function minQuorum(uint _value) internal constant returns (uint _minQuorum) {
+    function minQuorum(uint _value) internal view returns (uint _minQuorum) {
         // minimum of 14.3% and maximum of 47.6%
         return token.totalSupply() / minQuorumDivisor +
             (_value * token.totalSupply()) / (3 * (actualBalance()));
@@ -554,7 +554,7 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
         }
     }
 
-    function numberOfProposals() constant returns (uint _numberOfProposals) {
+    function numberOfProposals() view returns (uint _numberOfProposals) {
         // Don't count index 0. It's used by getOrModifyBlocked() and exists from start
         return proposals.length - 1;
     }

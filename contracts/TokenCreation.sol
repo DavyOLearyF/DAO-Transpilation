@@ -69,7 +69,7 @@ contract TokenCreation is TokenCreationInterface, Token {
 
 // added to create missing functionality -> implementation is currently arbitrary
 
-    function closingTime() constant returns (uint256) {
+    function closingTime() view returns (uint256) {
     return now + 1 days;
 }   
 
