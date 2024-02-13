@@ -57,7 +57,7 @@ contract TokenCreation is TokenCreationInterface, Token {
     }
 
     function createTokenProxy(address _tokenHolder) public payable returns (bool success) {
-        require (msg.value > 0 && this.balance + msg.value > 100000 ether, "Invalid value or contract balance"); 
+        assert (msg.value > 0 && this.balance + msg.value > 100000 ether, "Invalid value or contract balance"); 
             balances[_tokenHolder] += msg.value;
             totalSupply += msg.value;
             CreatedToken(_tokenHolder, msg.value);

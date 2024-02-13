@@ -70,10 +70,7 @@ contract Withdraw {
         // transferFrom() will work and not throw. We need transferFrom()
         // instead of transfer() due to the msg.sender in the latter ending
         // up to be the contract
-        if (!dao.transferFrom(msg.sender, this, balance)
-            || !msg.sender.send(balance * totalWeiSupply / totalSupply)) {
-
-            throw;
-        }
+        assert(! (!dao.transferFrom(msg.sender, this, balance)
+            || !msg.sender.send(balance * totalWeiSupply / totalSupply))) ;
     }
 }

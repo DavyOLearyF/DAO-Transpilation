@@ -171,7 +171,7 @@ contract DTHPoolInterface {
 contract DTHPool is DTHPoolInterface, Token, usingOraclize {
 
     modifier onlyDelegate() {
-    require(msg.sender == delegate, "Only delegate can call this function");
+    assert(msg.sender == delegate, "Only delegate can call this function");
     _;
 }
 
@@ -198,7 +198,7 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
 
     function delegateDAOTokens(uint _amount) public returns (bool _success) {
         DAO dao = DAO(daoAddress);
-        require(dao.transferFrom(msg.sender, address(this), _amount), "TransferFrom failed");
+        assert(dao.transferFrom(msg.sender, address(this), _amount), "TransferFrom failed");
 
 
         balances[msg.sender] += _amount;
@@ -210,9 +210,9 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
     function undelegateDAOTokens(uint _amount) public returns (bool _success) {
         DAO dao = DAO(daoAddress);
         
-        require(_amount <= balances[msg.sender], "Insufficient balance");
+        assert(_amount <= balances[msg.sender], "Insufficient balance");
         
-        require(dao.transfer(msg.sender, _amount), "Transfer failed");
+        assert(dao.transfer(msg.sender, _amount), "Transfer failed");
 
 
         balances[msg.sender] -= _amount;
@@ -231,12 +231,12 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
 
         ProposalStatus proposalStatus = proposalStatuses[_proposalID];
 
-      require(!proposalStatus.voteSet, "Vote has already been cast");
+      assert(!proposalStatus.voteSet, "Vote has already been cast");
 
 
         (,,,uint votingDeadline, ,,,,bool newCurator) = dao.proposals(_proposalID);
 
-        require(!(votingDeadline < block.timestamp || newCurator), "Invalid condition");
+        assert(!(votingDeadline < block.timestamp || newCurator), "Invalid condition");
 
 
         proposalStatus.voteSet = true;
@@ -295,7 +295,7 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
     function fixTokens() public returns (bool _success) {
         DAO dao = DAO(daoAddress);
         uint ownedTokens = dao.balanceOf(this);
-       require(!(ownedTokens < totalSupply), "Invalid condition");
+       assert(!(ownedTokens < totalSupply), "Invalid condition");
 
         uint fixTokens = ownedTokens - totalSupply;
 
@@ -312,7 +312,7 @@ contract DTHPool is DTHPoolInterface, Token, usingOraclize {
     function getEther() onlyDelegate public returns (uint _amount) {
         uint amount = this.balance;
 
-        require(delegate.call.value(amount)(), "Delegate call failed");
+        assert(delegate.call.value(amount)(), "Delegate call failed");
 
 
         return amount;

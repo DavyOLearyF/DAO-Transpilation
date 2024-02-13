@@ -94,14 +94,14 @@ contract Offer {
 
 
     modifier onlyClient {
-        require(msg.sender == address(client), "Unauthorized access");
+        assert(msg.sender == address(client), "Unauthorized access");
         _;
     }
 
 
     // Prevents methods from perfoming any value transfer
     modifier noEther() {
-    require(msg.value == 0, "Ether not allowed");
+    assert(msg.value == 0, "Ether not allowed");
     _;
 }
 
@@ -167,7 +167,7 @@ contract Offer {
         return client;
     }
 
-    function getOriginalClient() noEther view returns (DAO) {
+    function getOriginalClient() noEther public view returns (DAO) {
         return originalClient;
     }
 
@@ -183,18 +183,19 @@ contract Offer {
         return votingDeadline;
     }
 
-    function sign() {
-        if (msg.sender != address(originalClient) // no good samaritans give us ether
+    function sign() public {
+        assert(! (msg.sender != address(originalClient) // no good samaritans give us ether
             || msg.value != totalCost    // no under/over payment
             || dateOfSignature != 0      // don't accept twice
             || votingDeadline == 0       // votingDeadline needs to be set
             || now < votingDeadline + splitGracePeriod) // give people time to split
-            throw;
+            ) ;
+            
 
         lastWithdrawal = votingDeadline + payoutFreezePeriod;
         if (payoutFreezePeriod == 0) {
-            if (!contractor.send(initialWithdrawal))
-                throw;
+            assert(! (!contractor.send(initialWithdrawal)) ) ;
+                
             initialWithdrawalDone = true;
         }
         dateOfSignature = now;
@@ -203,14 +204,14 @@ contract Offer {
 
     // Once a proposal is submitted, the Contractor should call this
     // function to set the voting deadline of the proposal
-    function setVotingDeadline(uint _votingDeadline) noEther {
-        if (msg.sender != contractor || votingDeadline != 0)
-            throw;
+    function setVotingDeadline(uint _votingDeadline) noEther public {
+        assert (! (msg.sender != contractor || votingDeadline != 0) ) ;
+            
 
         votingDeadline = _votingDeadline;
     }
 
-    function setDailyWithdrawLimit(uint128 _dailyWithdrawalLimit) onlyClient noEther {
+    function setDailyWithdrawLimit(uint128 _dailyWithdrawalLimit) onlyClient noEther public {
         if (_dailyWithdrawalLimit >= minDailyWithdrawalLimit)
             dailyWithdrawalLimit = _dailyWithdrawalLimit;
     }
@@ -220,7 +221,7 @@ contract Offer {
     // The Client can terminate the ongoing Offer using this method. Using it
     // on an invalid (balance 0) Offer has no effect. The Contractor loses
     // right to any ether left in the Offer.
-    function terminate() noEther onlyClient {
+    function terminate() noEther onlyClient public {
         if (originalClient.DAOrewardAccount().call.value(this.balance)())
             isContractValid = false;
     }
@@ -231,9 +232,9 @@ contract Offer {
     // the current withdraw limit.
     // Executing this function before the Offer is accepted by the Client
     // makes no sense as this contract has no ether.
-    function withdraw() noEther {
-        if (msg.sender != contractor || now < votingDeadline + payoutFreezePeriod)
-            throw;
+    function withdraw() noEther public {
+        assert(! (msg.sender != contractor || now < votingDeadline + payoutFreezePeriod)); 
+            
         uint timeSincelastWithdrawal = now - lastWithdrawal;
         // Calculate the amount using 1 second precision.
         uint amount = (timeSincelastWithdrawal * dailyWithdrawalLimit) / (1 days);
@@ -248,26 +249,24 @@ contract Offer {
 
     // Perform the withdrawal of the initial sum of money to the contractor
     // if that did not already happen during the signing
-    function performInitialWithdrawal() noEther {
-        if (msg.sender != contractor
+    function performInitialWithdrawal() noEther public{
+        assert(!  (msg.sender != contractor
             || now < votingDeadline + payoutFreezePeriod
-            || initialWithdrawalDone ) {
-            throw;
-        }
+            || initialWithdrawalDone ) );
 
         initialWithdrawalDone = true;
-        if (!contractor.send(initialWithdrawal))
-            throw;
+        assert(! (!contractor.send(initialWithdrawal))); 
+            
     }
 
     // Change the client DAO by giving the new DAO's address
     // warning: The new DAO must come either from a split of the original
     // DAO or an update via `newContract()` so that it can claim rewards
-    function updateClientAddress(DAO _newClient) onlyClient noEther {
+    function updateClientAddress(DAO _newClient) onlyClient noEther public{
         client = _newClient;
     }
 
-    fallback () {
-        throw; // This is a business contract, no donations.
+    fallback () external{
+        assert(); // This is a business contract, no donations.
     }
 }

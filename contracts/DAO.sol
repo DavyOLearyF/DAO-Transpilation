@@ -248,7 +248,7 @@ contract DAO is DAOInterface{
 
     // Modifier that allows only shareholders to vote and create new proposals
     modifier onlyTokenholders {
-        require(token.balanceOf(msg.sender) > 0, "You must be a tokenholder");
+        assert(token.balanceOf(msg.sender) > 0, "You must be a tokenholder");
         _;
     }
 
@@ -279,7 +279,7 @@ contract DAO is DAOInterface{
         uint64 _debatingPeriod
     ) onlyTokenholders public payable returns (uint _proposalID) {
 
-       require(
+       assert(
             allowedRecipients[_recipient]
             && _debatingPeriod >= minProposalDebatePeriod
             && _debatingPeriod <= 8 weeks
@@ -353,7 +353,7 @@ contract DAO is DAOInterface{
     function unVote(uint _proposalID) public {
         Proposal p = proposals[_proposalID];
 
-        require(block.timestamp < p.votingDeadline, "Voting deadline has passed");
+        assert(block.timestamp < p.votingDeadline, "Voting deadline has passed");
 
         if (p.votedYes[msg.sender]) {
             p.yea -= token.balanceOf(msg.sender);
@@ -403,10 +403,10 @@ contract DAO is DAOInterface{
         }
 
      // Check if the proposal can be executed
-        require(block.timestamp < p.votingDeadline, "Voting deadline has arrived");
-        require(p.open, "Votes have not been counted");
-        require(!p.proposalPassed, "Proposal has already passed");
-        require(
+        assert(block.timestamp < p.votingDeadline, "Voting deadline has arrived");
+        assert(p.open, "Votes have not been counted");
+        assert(!p.proposalPassed, "Proposal has already passed");
+        assert(
                 p.proposalHash == keccak256(abi.encode(p.recipient, p.amount, _transactionData)),
                 "Transaction code does not match the proposal"
         );
@@ -437,7 +437,7 @@ contract DAO is DAOInterface{
                 proposalCheck = false;
 
         if (quorum >= minQuorum(p.amount)) {
-            require(p.creator.send(p.proposalDeposit), "Failed to send proposal deposit");
+            assert(p.creator.send(p.proposalDeposit), "Failed to send proposal deposit");
 
             lastTimeMinQuorumMet = now;
             // set the minQuorum to 14.3% again, in the case it has been reached
@@ -457,7 +457,7 @@ contract DAO is DAOInterface{
             // can do everything a transaction can do. It can be used to reenter
             // the DAO. The `p.proposalPassed` variable prevents the call from 
             // reaching this line again
-            require(p.recipient.call.value(p.amount)(_transactionData), "Failed to execute proposal transaction");
+            assert(p.recipient.call.value(p.amount)(_transactionData), "Failed to execute proposal transaction");
 
 
             _success = true;
@@ -501,18 +501,18 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
     function newContract(address _newContract) public {
         if (msg.sender != address(this) || !allowedRecipients[_newContract]) return;
         // move all ether
-       require(_newContract.call.value(address(this).balance)(), "Failed to transfer balance to new contract");
+       assert(_newContract.call.value(address(this).balance)(), "Failed to transfer balance to new contract");
 
     }
 
     function changeProposalDeposit(uint _proposalDeposit) external {
-      require(msg.sender == address(this) && _proposalDeposit <= actualBalance() / maxDepositDivisor, "Invalid conditions for proposal deposit");
+      assert(msg.sender == address(this) && _proposalDeposit <= actualBalance() / maxDepositDivisor, "Invalid conditions for proposal deposit");
         proposalDeposit = _proposalDeposit;
     }
 
 
     function changeAllowedRecipients(address _recipient, bool _allowed) external returns (bool _success) {
-        require(msg.sender == curator, "Only the curator can perform this action");
+        assert(msg.sender == curator, "Only the curator can perform this action");
 
         allowedRecipients[_recipient] = _allowed;
         AllowedRecipientChanged(_recipient, _allowed);
