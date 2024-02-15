@@ -27,18 +27,15 @@ contract Withdraw {
     uint constant public totalSupply = 11538165987024671407837618;
     uint constant public totalWeiSupply = 11898333978710775162018627;
 
-function withdraw(address donateExtraBalanceTo){
+function withdraw(address donateExtraBalanceTo) public {
         uint balance = mainDAO.balanceOf(msg.sender);
 
         // The msg.sender must call approve(this, balance) beforehand so that
         // transferFrom() will work and not throw. We need transferFrom()
         // instead of transfer() due to the msg.sender in the latter ending
         // up to be the contract
-        if (!mainDAO.transferFrom(msg.sender, this, balance)
+        assert(! (!mainDAO.transferFrom(msg.sender, this, balance)
             || !msg.sender.send(balance)
-            || !donateExtraBalanceTo.send(balance * totalWeiSupply / totalSupply - balance)) {
-
-            throw;
-        }
+            || !donateExtraBalanceTo.send(balance * totalWeiSupply / totalSupply - balance)) ); 
     }
 }

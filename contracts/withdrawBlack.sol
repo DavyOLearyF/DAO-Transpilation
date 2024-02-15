@@ -29,7 +29,7 @@ contract Withdraw {
     uint constant public totalWeiSupply = 12072858342395652843028271;
     uint constant public fixChildDAOsListTime = 1468057560; // 09.07.2016 - 11:46:00 CEST
 
-    function Withdraw(){
+    constructor(){
         // These are the child DAOs where the recursive call exploit was used,
         // their token balances are invalid.
         blackList[0xb136707642a4ea12fb4bae820f03d2562ebff487] = true;
@@ -46,12 +46,12 @@ contract Withdraw {
     /// The reason is that if this more complicated mechanism has a flaw,
     /// people will hopefully already have withdrawn most of the ether
     /// through the simpler mechanism below.
-    function withdrawFromChildDAO(uint _childProposalID) {
-        if (now < fixChildDAOsListTime + 4 weeks) throw;
+    function withdrawFromChildDAO(uint _childProposalID) public {
+        assert(! (now < fixChildDAOsListTime + 4 weeks)); 
         DAO child = DAO(mother.getNewDAOAddress(_childProposalID));
         // If the child is blacklisted or too new, this does not work.
-        if (address(child) == 0 || blackList[child] || child.lastTimeMinQuorumMet() > fixChildDAOsListTime)
-            throw;
+        assert(! (address(child) == 0 || blackList[child] || child.lastTimeMinQuorumMet() > fixChildDAOsListTime)); 
+            
 
         withdraw(child);
     }
@@ -59,7 +59,7 @@ contract Withdraw {
     /// Withdraw your share of the Ether.
     /// Prior to calling this function, you have to approve allow the withdraw
     /// contract to transfer your DAO tokens to it.
-    function withdraw() {
+    function withdraw() public {
         withdraw(mother);
     }
 

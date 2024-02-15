@@ -254,7 +254,7 @@ contract PFOffer {
     // function to register its proposal ID with the offer contract
     // so that the vote can be watched and checked with `checkVoteStatus()`
     function watchProposal(uint _proposalID) noEther onlyContractor public {
-        ( recipient,,, votingDeadline, open,) = client.proposals(_proposalID);
+        ( address recipient,,, uint votingDeadline, bool open,) = client.proposals(_proposalID);
         if (recipient == address(this)
             && votingDeadline > now
             && open
@@ -266,7 +266,7 @@ contract PFOffer {
     // The proposal will not accept the results of the vote if it wasn't able
     // to be sure that YEA was able to succeed 48 hours before the deadline
     function checkVoteStatus() noEther public {
-         (,,,votingDeadline,,,,,,yea,nay,) = client.proposals(proposalID);
+         (,,,uint votingDeadline,,,,,,uint yea,uint nay,) = client.proposals(proposalID);
         uint quorum = yea * 100 / client.totalSupply();
 
         // Only execute until 48 hours before the deadline

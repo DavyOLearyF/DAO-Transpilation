@@ -20,8 +20,8 @@ along with the DAO.  If not, see <http://www.gnu.org/licenses/>.
 pragma solidity ^0.8.21;
 
 contract DAO {
-    function balanceOf(address addr) returns (uint);
-    function transferFrom(address from, address to, uint balance) returns (bool);
+    function balanceOf(address addr) public returns (uint);
+    function transferFrom(address from, address to, uint balance) public returns (bool);
     uint public totalSupply;
 }
 
@@ -29,14 +29,14 @@ contract WithdrawDAO {
     DAO constant public mainDAO = DAO(0xbb9bc244d798123fde783fcc1c72d3bb8c189413);
     address public trustee = 0xDa4a4626d3E16e094De3225A751aAb7128e96526; // curator multisig
 
-    function withdraw(){
+    function withdraw() public {
         uint balance = mainDAO.balanceOf(msg.sender);
 
-        if (!mainDAO.transferFrom(msg.sender, this, balance) || !msg.sender.send(balance))
-            throw;
+        assert(! (!mainDAO.transferFrom(msg.sender, this, balance) || !msg.sender.send(balance))); 
+           
     }
 
-    function trusteeWithdraw() {
+    function trusteeWithdraw() public {
         trustee.send((this.balance + mainDAO.balanceOf(this)) - mainDAO.totalSupply());
     }
 }

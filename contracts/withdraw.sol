@@ -29,7 +29,7 @@ contract Withdraw {
     uint constant public totalWeiSupply = 12072858342395652843028271;
     uint constant public fixChildDAOsListTime = 1468057560; // 09.07.2016 - 11:46:00 CEST
 
-    function Withdraw(){
+    constructor() {
         // whitelist all childDAO except of attacker DAO (commented out)
         whiteList[0xd4fe7bc31cedb7bfb8a345f31e668033056b2728] = true;
         whiteList[0x2c19c7f9ae8b751e37aeb2d93a699722395ae18f] = true;
@@ -95,18 +95,18 @@ contract Withdraw {
     //    whiteList[0xf4c64518ea10f995918a454158c6b61407ea345c] = true;
     }
 
-    function withdrawFromChildDAO(DAO _child) {
+    function withdrawFromChildDAO(DAO _child) public {
         // to be replaced by a time which allows the direct withdraw to be finished before the childDAO withdraw starts
-        if (now < fixChildDAOsListTime + 4 weeks) throw;
-        if (!whiteList[_child]
+        assert(! (now < fixChildDAOsListTime + 4 weeks)); 
+        assert(! (!whiteList[_child]
             || _child.lastTimeMinQuorumMet() > fixChildDAOsListTime
-            || _child.privateCreation() != address(mother))
-            throw;
+            || _child.privateCreation() != address(mother)) ); 
+            
 
         withdraw(_child);
     }
 
-    function withdraw(){
+    function withdraw() public {
         withdraw(mother);
     }
 
@@ -117,10 +117,7 @@ contract Withdraw {
         // transferFrom() will work and not throw. We need transferFrom()
         // instead of transfer() due to the msg.sender in the latter ending
         // up to be the contract
-        if (!_dao.transferFrom(msg.sender, this, balance)
-            || !msg.sender.send(balance * totalWeiSupply / totalSupply)) {
-
-            throw;
-        }
+        assert(!  (!_dao.transferFrom(msg.sender, this, balance)
+            || !msg.sender.send(balance * totalWeiSupply / totalSupply))  );
     }
 }
