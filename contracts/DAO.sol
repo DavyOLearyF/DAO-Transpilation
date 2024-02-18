@@ -25,7 +25,7 @@ import "./TokenCreation.sol";
 
 pragma solidity ^0.8.21;
 
-contract DAOInterface {
+abstract contract DAOInterface {
     // The minimum debate period that a generic proposal can have
     uint constant minProposalDebatePeriod = 2 weeks;
     // The minimum debate period that a split proposal can have
@@ -138,7 +138,7 @@ contract DAOInterface {
     //  );
 
     /// @notice donate without getting tokens
-    fallback() external payable;
+    fallback() external payable virtual;
 
     /// @notice `msg.sender` creates a proposal to send `_amount` Wei to
     /// `_recipient` with the transaction data `_transactionData`. If
@@ -152,12 +152,12 @@ contract DAOInterface {
     /// weeks for a regular proposal, 10 days for new Curator proposal
     /// @param _newCurator Bool defining whether this proposal is about
     /// a new Curator or not
-    /// @return The proposal ID. Needed for voting on the proposal
+    /// @return _proposalID The proposal ID. Needed for voting on the proposal
     function newProposal(
         address _recipient,
         uint _amount,
-        string _description,
-        bytes _transactionData,
+        string memory _description,
+        bytes memory _transactionData,
         uint _debatingPeriod,
         bool _newCurator
     ) public payable returns (uint _proposalID);
@@ -169,68 +169,68 @@ contract DAOInterface {
     /// @param _recipient The recipient of the proposed transaction
     /// @param _amount The amount of wei to be sent in the proposed transaction
     /// @param _transactionData The data of the proposed transaction
-    /// @return Whether the proposal ID matches the transaction data or not
+    /// @return _codeChecksOut Whether the proposal ID matches the transaction data or not
     function checkProposalCode(
         uint _proposalID,
         address _recipient,
         uint _amount,
-        bytes _transactionData
-    ) public view returns (bool _codeChecksOut);
+        bytes memory _transactionData
+    ) public view virtual returns (bool _codeChecksOut);
 
     /// @notice Vote on proposal `_proposalID` with `_supportsProposal`
     /// @param _proposalID The proposal ID
     /// @param _supportsProposal Yes/No - support of the proposal
-    function vote(uint _proposalID, bool _supportsProposal) public;
+    function vote(uint _proposalID, bool _supportsProposal) public virtual;
 
     /// @notice Checks whether proposal `_proposalID` with transaction data
     /// `_transactionData` has been voted for or rejected, and executes the
     /// transaction in the case it has been voted for.
     /// @param _proposalID The proposal ID
     /// @param _transactionData The data of the proposed transaction
-    /// @return Whether the proposed transaction has been executed or not
+    /// @return _success Whether the proposed transaction has been executed or not
     function executeProposal(
         uint _proposalID,
-        bytes _transactionData
-    ) public returns (bool _success);
+        bytes memory _transactionData
+    ) public virtual returns (bool _success);
 
 
     /// @dev can only be called by the DAO itself through a proposal
     /// updates the contract of the DAO by sending all ether and rewardTokens
     /// to the new DAO. The new DAO needs to be approved by the Curator
     /// @param _newContract the address of the new contract
-    function newContract(address _newContract) public ;
+    function newContract(address _newContract) public virtual;
 
 
     /// @notice Add a new possible recipient `_recipient` to the whitelist so
     /// that the DAO can send transactions to them (using proposals)
     /// @param _recipient New recipient address
     /// @dev Can only be called by the current Curator
-    /// @return Whether successful or not
-    function changeAllowedRecipients(address _recipient, bool _allowed) external returns (bool _success);
+    /// @return _success Whether successful or not
+    function changeAllowedRecipients(address _recipient, bool _allowed) external virtual returns (bool _success);
 
 
     /// @notice Change the minimum deposit required to submit a proposal
     /// @param _proposalDeposit The new proposal deposit
     /// @dev Can only be called by this DAO (through proposals with the
     /// recipient being this DAO itself)
-    function changeProposalDeposit(uint _proposalDeposit) external;
+    function changeProposalDeposit(uint _proposalDeposit) external virtual;
 
     /// @notice Doubles the 'minQuorumDivisor' in the case quorum has not been
     /// achieved in 52 weeks
-    /// @return Whether the change was successful or not
-    function halveMinQuorum() public returns (bool _success);
+    /// @return _success Whether the change was successful or not
+    function halveMinQuorum() public virtual returns (bool _success);
 
-    /// @return total number of proposals ever created
-    function numberOfProposals() public view returns (uint _numberOfProposals);
+    /// @return _numberOfProposals total number of proposals ever created
+    function numberOfProposals() public view virtual returns (uint _numberOfProposals);
 
     /// @param _account The address of the account which is checked.
-    /// @return Whether the account is blocked (not allowed to transfer tokens) or not.
-    function getOrModifyBlocked(address _account) internal returns (bool);
+    /// @return bool Whether the account is blocked (not allowed to transfer tokens) or not.
+    function getOrModifyBlocked(address _account) internal virtual returns (bool);
 
     /// @notice If the caller is blocked by a proposal whose voting deadline
     /// has exprired then unblock him.
-    /// @return Whether the account is blocked (not allowed to transfer tokens) or not.
-    function unblockMe() public returns (bool);
+    /// @return bool Whether the account is blocked (not allowed to transfer tokens) or not.
+    function unblockMe() public virtual returns (bool);
 
     event ProposalAdded(
         uint indexed proposalID,
@@ -244,7 +244,7 @@ contract DAOInterface {
 }
 
 // The DAO contract itself
-contract DAO is DAOInterface{
+abstract contract DAO is DAOInterface{
 
     // Modifier that allows only shareholders to vote and create new proposals
     modifier onlyTokenholders {
@@ -268,14 +268,14 @@ contract DAO is DAOInterface{
         allowedRecipients[curator] = true;
     }
 
-    fallback() external payable {
+    fallback() external payable override {
     }
 
     function newProposal(
         address _recipient,
         uint _amount,
-        string _description,
-        bytes _transactionData,
+        string memory _description,
+        bytes memory _transactionData,
         uint64 _debatingPeriod
     ) onlyTokenholders public payable returns (uint _proposalID) {
 
@@ -293,7 +293,7 @@ contract DAO is DAOInterface{
             lastTimeMinQuorumMet = now;
 
         _proposalID = proposals.length++;
-        Proposal p = proposals[_proposalID];
+        Proposal storage p = proposals[_proposalID];
         p.recipient = _recipient;
         p.amount = _amount;
         p.description = _description;
@@ -318,15 +318,15 @@ contract DAO is DAOInterface{
         uint _proposalID,
         address _recipient,
         uint _amount,
-        bytes _transactionData
-    ) public view returns (bool _codeChecksOut) {
-        Proposal p = proposals[_proposalID];
+        bytes memory _transactionData
+    ) public view override returns (bool _codeChecksOut) {
+        Proposal storage p = proposals[_proposalID];
         return p.proposalHash == sha3(_recipient, _amount, _transactionData);
     }
 
-    function vote(uint _proposalID, bool _supportsProposal) public {
+    function vote(uint _proposalID, bool _supportsProposal) public override {
 
-        Proposal p = proposals[_proposalID];
+        Proposal storage p = proposals[_proposalID];
 
         unVote(_proposalID);
 
@@ -351,7 +351,7 @@ contract DAO is DAOInterface{
     }
 
     function unVote(uint _proposalID) public {
-        Proposal p = proposals[_proposalID];
+        Proposal storage p = proposals[_proposalID];
 
         assert(block.timestamp < p.votingDeadline, "Voting deadline has passed");
 
@@ -369,7 +369,7 @@ contract DAO is DAOInterface{
     function unVoteAll() public{
         // DANGEROUS loop with dynamic length - needs improvement
         for (uint i = 0; i < votingRegister[msg.sender].length; i++) {
-            Proposal p = proposals[votingRegister[msg.sender][i]];
+            Proposal storage p = proposals[votingRegister[msg.sender][i]];
             if (now < p.votingDeadline)
                 unVote(i);
         }
@@ -379,7 +379,7 @@ contract DAO is DAOInterface{
     }
     
     function verifyPreSupport(uint _proposalID) public {
-        Proposal p = proposals[_proposalID];
+        Proposal storage p = proposals[_proposalID];
         if (now < p.votingDeadline - preSupportTime) {
             if (p.yea > p.nay) {
                 p.preSupport = true;
@@ -391,10 +391,10 @@ contract DAO is DAOInterface{
 
     function executeProposal(
         uint _proposalID,
-        bytes _transactionData
-    )public returns (bool _success) {
+        bytes memory _transactionData
+    )public override returns (bool _success) {
 
-        Proposal p = proposals[_proposalID];
+        Proposal storage p = proposals[_proposalID];
 
         // If we are over deadline and waiting period, assert proposal is closed
         if (p.open && now > p.votingDeadline + executeProposalPeriod) {
@@ -471,7 +471,7 @@ contract DAO is DAOInterface{
 
 
     function closeProposal(uint _proposalID) internal {
-        Proposal p = proposals[_proposalID];
+        Proposal storage p = proposals[_proposalID];
         if (p.open)
             sumOfProposalDeposits -= p.proposalDeposit;
         p.open = false;
@@ -498,20 +498,20 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
     }
 */
 
-    function newContract(address _newContract) public {
+    function newContract(address _newContract) public override {
         if (msg.sender != address(this) || !allowedRecipients[_newContract]) return;
         // move all ether
        assert(_newContract.call.value(address(this).balance)(), "Failed to transfer balance to new contract");
 
     }
 
-    function changeProposalDeposit(uint _proposalDeposit) external {
+    function changeProposalDeposit(uint _proposalDeposit) external override{
       assert(msg.sender == address(this) && _proposalDeposit <= actualBalance() / maxDepositDivisor, "Invalid conditions for proposal deposit");
         proposalDeposit = _proposalDeposit;
     }
 
 
-    function changeAllowedRecipients(address _recipient, bool _allowed) external returns (bool _success) {
+    function changeAllowedRecipients(address _recipient, bool _allowed) external override returns (bool _success) {
         assert(msg.sender == curator, "Only the curator can perform this action");
 
         allowedRecipients[_recipient] = _allowed;
@@ -532,7 +532,7 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
     }
 
 
-    function halveMinQuorum() public returns (bool _success) {
+    function halveMinQuorum() public override returns (bool _success) {
         // this can only be called after `quorumHalvingPeriod` has passed or at anytime after
         // fueling by the curator with a delay of at least `minProposalDebatePeriod`
         // between the calls
@@ -547,15 +547,15 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
         }
     }
 
-    function numberOfProposals() public view returns (uint _numberOfProposals) {
+    function numberOfProposals() public view override returns (uint _numberOfProposals) {
         // Don't count index 0. It's used by getOrModifyBlocked() and exists from start
         return proposals.length - 1;
     }
 
-    function getOrModifyBlocked(address _account) internal returns (bool) {
+    function getOrModifyBlocked(address _account) internal override returns (bool) {
         if (blocked[_account] == 0)
             return false;
-        Proposal p = proposals[blocked[_account]];
+        Proposal storage p = proposals[blocked[_account]];
         if (!p.open) {
             blocked[_account] = 0;
             return false;
@@ -564,7 +564,7 @@ this withdraw functions is flawed and needs to be replaced by an improved versio
         }
     }
 
-    function unblockMe() public returns (bool) {
+    function unblockMe() public override returns (bool) {
         return getOrModifyBlocked(msg.sender);
     }
 }

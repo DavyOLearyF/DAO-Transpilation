@@ -26,7 +26,7 @@ import "./Token.sol";
 
 pragma solidity ^0.8.21;
 
-contract TokenCreationInterface {
+abstract contract TokenCreationInterface {
     /// @dev Constructor setting the minimum fueling goal and the
     /// end of the Token Creation
     /// (the address can also create Tokens on behalf of other accounts)
@@ -39,16 +39,16 @@ contract TokenCreationInterface {
 
     /// @notice Create Token with `_tokenHolder` as the initial owner of the Token
     /// @param _tokenHolder The address of the Tokens's recipient
-    /// @return Whether the token creation was successful
-    function createTokenProxy(address _tokenHolder) public payable returns (bool success);
+    /// @return success Whether the token creation was successful
+    function createTokenProxy(address _tokenHolder) public payable virtual returns (bool success);
     event CreatedToken(address indexed to, uint amount);
 }
 
 
 contract TokenCreation is TokenCreationInterface, Token {
     constructor (
-        string _tokenName,
-        string _tokenSymbol,
+        string memory _tokenName,
+        string memory _tokenSymbol,
         uint _decimalPlaces,
         Plutocracy _plutocracy) Token(_plutocracy) {
         name = _tokenName;
@@ -56,8 +56,8 @@ contract TokenCreation is TokenCreationInterface, Token {
         decimals = _decimalPlaces;
     }
 
-    function createTokenProxy(address _tokenHolder) public payable returns (bool success) {
-        assert (msg.value > 0 && this.balance + msg.value > 100000 ether, "Invalid value or contract balance"); 
+    function createTokenProxy(address _tokenHolder) public payable override returns (bool success) {
+        assert (msg.value > 0 && address(this).balance + msg.value > 100000 ether, "Invalid value or contract balance"); 
             balances[_tokenHolder] += msg.value;
             totalSupply += msg.value;
             CreatedToken(_tokenHolder, msg.value);

@@ -19,7 +19,7 @@ along with the DAO.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.8.21;
 
-contract DAO {
+abstract contract DAO {
     function balanceOf(address addr) public returns (uint);
     function transferFrom(address from, address to, uint balance) public returns (bool);
     uint public totalSupply;
