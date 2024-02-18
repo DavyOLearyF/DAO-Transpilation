@@ -57,7 +57,7 @@ contract TokenCreation is TokenCreationInterface, Token {
     }
 
     function createTokenProxy(address _tokenHolder) public payable override returns (bool success) {
-        assert (msg.value > 0 && address(this).balance + msg.value > 100000 ether, "Invalid value or contract balance"); 
+        assert(msg.value > 0 && (address(this).balance + msg.value > 100000 ether));
             balances[_tokenHolder] += msg.value;
             totalSupply += msg.value;
             CreatedToken(_tokenHolder, msg.value);
@@ -69,7 +69,7 @@ contract TokenCreation is TokenCreationInterface, Token {
 // added to create missing functionality -> implementation is currently arbitrary
 
     function closingTime() public view returns (uint256) {
-    return now + 1 days;
+    return block.timestamp + 1 days;
 }   
 
 }

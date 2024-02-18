@@ -160,7 +160,7 @@ abstract contract DAOInterface {
         bytes memory _transactionData,
         uint _debatingPeriod,
         bool _newCurator
-    ) public payable returns (uint _proposalID);
+    ) public payable virtual returns (uint _proposalID);
 
     /// @notice Check that the proposal with the ID `_proposalID` matches the
     /// transaction which sends `_amount` with data `_transactionData`
@@ -248,7 +248,7 @@ abstract contract DAO is DAOInterface{
 
     // Modifier that allows only shareholders to vote and create new proposals
     modifier onlyTokenholders {
-        assert(token.balanceOf(msg.sender) > 0, "You must be a tokenholder");
+        assert(token.balanceOf(msg.sender) > 0);
         _;
     }
 
@@ -260,9 +260,10 @@ abstract contract DAO is DAOInterface{
         token = _token;
         curator = _curator;
         proposalDeposit = _proposalDeposit;
-        lastTimeMinQuorumMet = now;
+        lastTimeMinQuorumMet = block.timestamp;
         minQuorumDivisor = 7; // sets the minimal quorum to 14.3%
-        proposals.length = 1; // avoids a proposal with ID 0 because it is used
+        proposals.push();
+        //proposals.length = 1;  avoids a proposal with ID 0 because it is used
 
         allowedRecipients[address(this)] = true;
         allowedRecipients[curator] = true;
@@ -284,21 +285,21 @@ abstract contract DAO is DAOInterface{
             && _debatingPeriod >= minProposalDebatePeriod
             && _debatingPeriod <= 8 weeks
             && msg.value >= proposalDeposit
-            && msg.sender != address(this), // Check that the sender is not the contract itself, to prevent a 51% attacker to convert the ether into deposit
-            "Invalid parameters for proposal creation"
+            && msg.sender != address(this) // Check that the sender is not the contract itself, to prevent a 51% attacker to convert the ether into deposit
         );
 
         // to prevent curator from halving quorum before first proposal
         if (proposals.length == 1) // initial length is 1 (see constructor)
-            lastTimeMinQuorumMet = now;
+            lastTimeMinQuorumMet = block.timestamp;
 
-        _proposalID = proposals.length++;
+        _proposalID = proposals.length;
+        proposals.push();
         Proposal storage p = proposals[_proposalID];
         p.recipient = _recipient;
         p.amount = _amount;
         p.description = _description;
-        p.proposalHash = sha3(_recipient, _amount, _transactionData);
-        p.votingDeadline = now + _debatingPeriod;
+        p.proposalHash = keccak256(abi.encodePacked(_recipient, _amount, _transactionData));
+        p.votingDeadline = block.timestamp + _debatingPeriod;
         p.open = true;
         //p.proposalPassed = False; // that's default
         p.creator = msg.sender;
@@ -321,7 +322,7 @@ abstract contract DAO is DAOInterface{
         bytes memory _transactionData
     ) public view override returns (bool _codeChecksOut) {
         Proposal storage p = proposals[_proposalID];
-        return p.proposalHash == sha3(_recipient, _amount, _transactionData);
+        return p.proposalHash == keccak256(abi.encodePacked(_recipient, _amount, _transactionData));
     }
 
     function vote(uint _proposalID, bool _supportsProposal) public override {
@@ -353,7 +354,7 @@ abstract contract DAO is DAOInterface{
     function unVote(uint _proposalID) public {
         Proposal storage p = proposals[_proposalID];
 
-        assert(block.timestamp < p.votingDeadline, "Voting deadline has passed");
+        assert(block.timestamp < p.votingDeadline);
 
         if (p.votedYes[msg.sender]) {
             p.yea -= token.balanceOf(msg.sender);
@@ -370,17 +371,20 @@ abstract contract DAO is DAOInterface{
         // DANGEROUS loop with dynamic length - needs improvement
         for (uint i = 0; i < votingRegister[msg.sender].length; i++) {
             Proposal storage p = proposals[votingRegister[msg.sender][i]];
-            if (now < p.votingDeadline)
+            if (block.timestamp < p.votingDeadline)
                 unVote(i);
         }
 
-        votingRegister[msg.sender].length = 0;
+        while (votingRegister[msg.sender].length > 0) {
+            votingRegister[msg.sender].pop();
+        }
+
         blocked[msg.sender] = 0;
     }
     
     function verifyPreSupport(uint _proposalID) public {
         Proposal storage p = proposals[_proposalID];
-        if (now < p.votingDeadline - preSupportTime) {
+        if (block.timestamp < p.votingDeadline - preSupportTime) {
             if (p.yea > p.nay) {
                 p.preSupport = true;
             }
@@ -397,19 +401,16 @@ abstract contract DAO is DAOInterface{
         Proposal storage p = proposals[_proposalID];
 
         // If we are over deadline and waiting period, assert proposal is closed
-        if (p.open && now > p.votingDeadline + executeProposalPeriod) {
+        if (p.open && block.timestamp > p.votingDeadline + executeProposalPeriod) {
             closeProposal(_proposalID);
-            return;
+            return true;
         }
 
      // Check if the proposal can be executed
-        assert(block.timestamp < p.votingDeadline, "Voting deadline has arrived");
-        assert(p.open, "Votes have not been counted");
-        assert(!p.proposalPassed, "Proposal has already passed");
-        assert(
-                p.proposalHash == keccak256(abi.encode(p.recipient, p.amount, _transactionData)),
-                "Transaction code does not match the proposal"
-        );
+        assert(block.timestamp < p.votingDeadline);
+        assert(p.open);
+        assert(!p.proposalPassed);
+        assert(p.proposalHash == keccak256(abi.encode(p.recipient, p.amount, _transactionData)));
 
         // If the curator removed the recipient from the whitelist, close the proposal
         // in order to free the deposit and allow unblocking of voters
@@ -417,8 +418,8 @@ abstract contract DAO is DAOInterface{
             closeProposal(_proposalID);
             // the return value is not checked to prevent a malicious creator
             // from delaying the closing of the proposal
-            p.creator.send(p.proposalDeposit);
-            return;
+            payable(p.creator).send(p.proposalDeposit);
+            //return;
         }
 
         bool proposalCheck = true;
@@ -437,7 +438,7 @@ abstract contract DAO is DAOInterface{
                 proposalCheck = false;
 
         if (quorum >= minQuorum(p.amount)) {
-            assert(p.creator.send(p.proposalDeposit), "Failed to send proposal deposit");
+            assert(payable(p.creator).send(p.proposalDeposit));
 
             lastTimeMinQuorumMet = now;
             // set the minQuorum to 14.3% again, in the case it has been reached
